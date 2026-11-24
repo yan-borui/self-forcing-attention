@@ -1,0 +1,19 @@
+2026-11-24T08:24:37+08:00 GPU acquired
+2026-11-24T08:24:37+08:00 START seed=2026 native ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2026-native.9IX5cB
+2026-11-24T08:29:46+08:00 END seed=2026 native rc=0
+2026-11-24T08:29:46+08:00 START seed=2026 sage ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2026-sage.PcpNca
+2026-11-24T08:34:24+08:00 END seed=2026 sage rc=0
+2026-11-24T08:34:24+08:00 START seed=2026 native_write ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2026-native_write.H03X3z
+2026-11-24T08:39:22+08:00 END seed=2026 native_write rc=0
+2026-11-24T08:39:22+08:00 START seed=2026 native_last_denoise ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2026-native_last_denoise.5AVuIq
+2026-11-24T08:44:21+08:00 END seed=2026 native_last_denoise rc=0
+2026-11-24T08:44:21+08:00 START seed=2026 probe ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2026-probe.ExZIWn
+2026-11-24T08:48:27+08:00 END seed=2026 probe rc=0
+2026-11-24T08:48:27+08:00 START seed=2027 native_last_denoise ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2027-native_last_denoise.qOfB4y
+2026-11-24T08:51:02+08:00 END seed=2027 native_last_denoise rc=0
+2026-11-24T08:51:02+08:00 START seed=2027 native_write ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2027-native_write.J5YBWV
+2026-11-24T08:53:38+08:00 END seed=2027 native_write rc=0
+2026-11-24T08:53:38+08:00 START seed=2027 sage ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2027-sage.aLrQen
+2026-11-24T08:56:11+08:00 END seed=2027 sage rc=0
+2026-11-24T08:56:11+08:00 START seed=2027 native ${PROJECT_ROOT}/runs/length-201-20261124/attempts/2027-native.W16Kdg
+2026-11-24T08:58:56+08:00 END seed=2027 native rc=0

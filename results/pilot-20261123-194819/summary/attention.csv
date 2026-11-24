@@ -1,0 +1,13 @@
+policy,prompt,phase,calls,gpu_ms
+profile_native,0,denoise,630,2647.841
+profile_native,0,last_denoise,210,861.718
+profile_native,0,write,210,856.83
+profile_native,1,denoise,630,2564.111
+profile_native,1,last_denoise,210,850.701
+profile_native,1,write,210,852.595
+profile_sage,0,denoise,630,2099.188
+profile_sage,0,last_denoise,210,501.306
+profile_sage,0,write,210,501.616
+profile_sage,1,denoise,630,1512.549
+profile_sage,1,last_denoise,210,501.208
+profile_sage,1,write,210,501.133

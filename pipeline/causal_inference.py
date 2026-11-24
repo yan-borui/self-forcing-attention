@@ -2,8 +2,32 @@ from typing import List, Optional
 import torch
 
 from utils.wan_wrapper import WanDiffusionWrapper, WanTextEncoder, WanVAEWrapper
+from wan.modules.attention import attention
 
 from demo_utils.memory import gpu, get_cuda_free_memory_gb, DynamicSwapInstaller, move_model_to_device_with_memory_preservation
+
+
+SAGE_ROLES = {
+    "native": (),
+    "sage": ("denoise", "last_denoise", "write"),
+    "native_write": ("denoise", "last_denoise"),
+    "native_last_denoise": ("denoise", "write"),
+}
+
+
+def load_sage_v1_attention():
+    from importlib.metadata import version
+
+    if version("sageattention").partition("+")[0] != "1.0.6":
+        raise RuntimeError("The Sage policies use sageattention==1.0.6.")
+    from sageattention import sageattn
+
+    def attend(q, k, v):
+        # v1 centers K in place. The caller passes a view of persistent history.
+        centered_k = k - k.mean(dim=1, keepdim=True)
+        return sageattn(q, centered_k, v, tensor_layout="NHD", is_causal=False, smooth_k=False)
+
+    return attend
 
 
 class CausalInferencePipeline(torch.nn.Module):
@@ -13,9 +37,19 @@ class CausalInferencePipeline(torch.nn.Module):
             device,
             generator=None,
             text_encoder=None,
-            vae=None
+            vae=None,
+            *,
+            attention_policy="native",
+            sage_write_probe_chunk=None,
+            profile_self_attention=False,
     ):
         super().__init__()
+        self.sage_roles = SAGE_ROLES[attention_policy]
+        self.sage_write_probe_chunk = sage_write_probe_chunk
+        self.attention_events = {} if profile_self_attention else None
+        self.sage_attention = None
+        if self.sage_roles or sage_write_probe_chunk is not None:
+            self.sage_attention = load_sage_v1_attention()
         # Step 1: Initialize all models
         self.generator = WanDiffusionWrapper(
             **getattr(args, "model_kwargs", {}), is_causal=True) if generator is None else generator
@@ -44,6 +78,31 @@ class CausalInferencePipeline(torch.nn.Module):
         if self.num_frame_per_block > 1:
             self.generator.model.num_frame_per_block = self.num_frame_per_block
 
+    def _select_cached_attention(self, role, chunk_index=None):
+        if self.sage_attention is None and self.attention_events is None:
+            return
+        if self.sage_write_probe_chunk is None:
+            use_sage = role in self.sage_roles
+        else:
+            use_sage = role == "write" and chunk_index == self.sage_write_probe_chunk
+        backend = self.sage_attention if use_sage else attention
+        selected = backend
+        if self.attention_events is not None:
+            events = self.attention_events.setdefault(role, [])
+
+            def measured(q, k, v):
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
+                output = backend(q, k, v)
+                end.record()
+                events.append((start, end))
+                return output
+
+            selected = measured
+        for layer_cache in self.kv_cache1:
+            layer_cache["self_attention"] = selected
+
     def inference(
         self,
         noise: torch.Tensor,
@@ -70,6 +129,8 @@ class CausalInferencePipeline(torch.nn.Module):
                 It is normalized to be in the range [0, 1].
         """
         batch_size, num_frames, num_channels, height, width = noise.shape
+        if self.attention_events is not None:
+            self.attention_events.clear()
         if not self.independent_first_frame or (self.independent_first_frame and initial_latent is not None):
             # If the first frame is independent and the first frame is provided, then the number of frames in the
             # noise should still be a multiple of num_frame_per_block
@@ -134,6 +195,7 @@ class CausalInferencePipeline(torch.nn.Module):
         # Step 2: Cache context feature
         current_start_frame = 0
         if initial_latent is not None:
+            self._select_cached_attention("prefix")
             timestep = torch.ones([batch_size, 1], device=noise.device, dtype=torch.int64) * 0
             if self.independent_first_frame:
                 # Assume num_input_frames is 1 + self.num_frame_per_block * num_input_blocks
@@ -177,7 +239,9 @@ class CausalInferencePipeline(torch.nn.Module):
         all_num_frames = [self.num_frame_per_block] * num_blocks
         if self.independent_first_frame and initial_latent is None:
             all_num_frames = [1] + all_num_frames
-        for current_num_frames in all_num_frames:
+        if self.sage_write_probe_chunk is not None and not 0 <= self.sage_write_probe_chunk < len(all_num_frames):
+            raise ValueError(f"Probe chunk must be in [0, {len(all_num_frames) - 1}].")
+        for chunk_index, current_num_frames in enumerate(all_num_frames):
             if profile:
                 block_start.record()
 
@@ -186,6 +250,8 @@ class CausalInferencePipeline(torch.nn.Module):
 
             # Step 3.1: Spatial denoising loop
             for index, current_timestep in enumerate(self.denoising_step_list):
+                role = "last_denoise" if index == len(self.denoising_step_list) - 1 else "denoise"
+                self._select_cached_attention(role, chunk_index)
                 print(f"current_timestep: {current_timestep}")
                 # set current timestep
                 timestep = torch.ones(
@@ -224,6 +290,7 @@ class CausalInferencePipeline(torch.nn.Module):
             output[:, current_start_frame:current_start_frame + current_num_frames] = denoised_pred
 
             # Step 3.3: rerun with timestep zero to update KV cache using clean context
+            self._select_cached_attention("write", chunk_index)
             context_timestep = torch.ones_like(timestep) * self.args.context_noise
             self.generator(
                 noisy_image_or_video=denoised_pred,

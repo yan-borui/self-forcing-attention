@@ -1,0 +1,17 @@
+policy,prompt,subject_consistency,dynamic_degree
+native,0,0.9405004993081093,False
+native,1,0.9679200869053602,False
+native,2,0.9533352795988321,True
+native,3,0.9616198547184467,True
+sage,0,0.9507544938474893,False
+sage,1,0.9627832338213921,False
+sage,2,0.9664681438356638,True
+sage,3,0.9653723366558552,True
+native_write,0,0.9490281216800213,True
+native_write,1,0.9615743190050126,False
+native_write,2,0.9662591945379972,True
+native_write,3,0.9657943814992904,True
+native_last_denoise,0,0.9513772964477539,False
+native_last_denoise,1,0.9625431030988694,False
+native_last_denoise,2,0.9657427653670311,True
+native_last_denoise,3,0.9656486880034209,True

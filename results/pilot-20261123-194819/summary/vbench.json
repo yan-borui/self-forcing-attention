@@ -1,0 +1,18 @@
+{
+  "native": {
+    "subject_consistency": 0.9558439301326871,
+    "dynamic_degree": 0.5
+  },
+  "sage": {
+    "subject_consistency": 0.9613445520401,
+    "dynamic_degree": 0.5
+  },
+  "native_write": {
+    "subject_consistency": 0.9606640041805803,
+    "dynamic_degree": 0.75
+  },
+  "native_last_denoise": {
+    "subject_consistency": 0.9613279632292688,
+    "dynamic_degree": 0.5
+  }
+}

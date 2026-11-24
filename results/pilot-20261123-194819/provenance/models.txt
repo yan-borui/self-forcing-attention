@@ -1,0 +1,3 @@
+Self Forcing DMD: gdhe17/Self-Forcing checkpoints/self_forcing_dmd.pt (published listing 2f8b779212da279d212c22a509b66ad6552f350e)
+Base: Wan-AI/Wan2.1-T2V-1.3B (published listing 37ec512624d61f7aa208f7ea8140a131f93afc9a)
+SageAttention 1.0.6: 2bec28a19edaba8cddfba60c0ab87a0f7f9b58f6

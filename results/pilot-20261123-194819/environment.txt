@@ -1,0 +1,17 @@
+33593df3e81fa3ec10239271dd2c100facac6de1
+Linux 6.6.87.2-microsoft-standard-WSL2 x86_64
+index, name, driver_version, memory.total [MiB], memory.used [MiB], utilization.gpu [%]
+0, NVIDIA GeForce RTX 4090, 610.88, 24564 MiB, 2782 MiB, 18 %
+Python 3.10.22 (main, Oct  9 2026, 15:21:30) [Clang 22.1.3 ]
+torch 2.8.0+cu128 CUDA 12.8
+antlr4-python3-runtime==4.9.3
+av==13.1.0
+diffusers==0.31.0
+easydict==1.13
+imageio==2.37.0
+imageio-ffmpeg==0.6.0
+lmdb==1.7.5
+numpy==1.24.4
+omegaconf==2.3.0
+opencv-python-headless==4.11.0.86
+sageattention==1.0.6

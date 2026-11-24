@@ -226,7 +226,8 @@ class CausalWanSelfAttention(nn.Module):
                 local_start_index = local_end_index - num_new_tokens
                 kv_cache["k"][:, local_start_index:local_end_index] = roped_key
                 kv_cache["v"][:, local_start_index:local_end_index] = v
-            x = attention(
+            cache_attention = kv_cache.get("self_attention", attention)
+            x = cache_attention(
                 roped_query,
                 kv_cache["k"][:, max(0, local_end_index - self.max_attention_size):local_end_index],
                 kv_cache["v"][:, max(0, local_end_index - self.max_attention_size):local_end_index]

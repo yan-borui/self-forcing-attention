@@ -1,0 +1,41 @@
+{
+  "official_native_latents_equal": true,
+  "dtype": "torch.bfloat16",
+  "shape": [
+    21,
+    16,
+    60,
+    104
+  ],
+  "native_repeat_decoded": {
+    "frames": 81,
+    "same_decoded_frames": false,
+    "rgb_mae": 0.012713685316178282,
+    "last24_rgb_mae": 0.013568761216203006,
+    "adjacent_rgb_change": 0.042608636318108975
+  },
+  "kv_prior_history_equal": true,
+  "same_input_native_repeat_equal": true,
+  "sage_equal_current": [
+    "1k",
+    "1v"
+  ],
+  "sage_layers": {
+    "1": {
+      "k": 0.0,
+      "v": 0.0
+    },
+    "2": {
+      "k": 0.005077302921563387,
+      "v": 0.007713451981544495
+    },
+    "15": {
+      "k": 0.015714960172772408,
+      "v": 0.02708527073264122
+    },
+    "30": {
+      "k": 0.005487252026796341,
+      "v": 0.02917528711259365
+    }
+  }
+}

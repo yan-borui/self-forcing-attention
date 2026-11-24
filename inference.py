@@ -1,4 +1,5 @@
 import argparse
+import time
 import torch
 import os
 from omegaconf import OmegaConf
@@ -14,6 +15,7 @@ from pipeline import (
     CausalDiffusionInferencePipeline,
     CausalInferencePipeline,
 )
+from pipeline.causal_inference import SAGE_ROLES
 from utils.dataset import TextDataset, TextImagePairDataset
 from utils.misc import set_seed
 
@@ -33,6 +35,17 @@ parser.add_argument("--seed", type=int, default=0, help="Random seed")
 parser.add_argument("--num_samples", type=int, default=1, help="Number of samples to generate per prompt")
 parser.add_argument("--save_with_index", action="store_true",
                     help="Whether to save the video using the index or prompt as the filename")
+attention_options = parser.add_mutually_exclusive_group()
+attention_options.add_argument("--attention_policy", choices=SAGE_ROLES, default="native",
+                               help="Self-attention schedule for few-step generation")
+attention_options.add_argument("--sage_write_probe_chunk", type=int,
+                               help="Use Sage only for the clean write of one zero-based generated chunk")
+parser.add_argument("--save_latents", action="store_true",
+                    help="Save each sample's output latents beside its video")
+parser.add_argument("--report_latency", action="store_true",
+                    help="Report synchronized pipeline seconds including prompt encoding and VAE decoding")
+parser.add_argument("--profile_self_attention", action="store_true",
+                    help="Time cached self-attention on the GPU separately for denoising and history writes")
 args = parser.parse_args()
 
 # Initialize distributed inference
@@ -61,9 +74,13 @@ config = OmegaConf.merge(default_config, config)
 # Initialize pipeline
 if hasattr(config, 'denoising_step_list'):
     # Few-step inference
-    pipeline = CausalInferencePipeline(config, device=device)
+    pipeline = CausalInferencePipeline(config, device=device, attention_policy=args.attention_policy,
+                                       sage_write_probe_chunk=args.sage_write_probe_chunk,
+                                       profile_self_attention=args.profile_self_attention)
 else:
     # Multi-step diffusion inference
+    if args.attention_policy != "native" or args.sage_write_probe_chunk is not None or args.profile_self_attention:
+        parser.error("The attention policy and write probe require a few-step configuration.")
     pipeline = CausalDiffusionInferencePipeline(config, device=device)
 
 if args.checkpoint_path:
@@ -163,6 +180,10 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
         )
 
     # Generate 81 frames
+    if args.report_latency:
+        torch.cuda.synchronize(device)
+        torch.cuda.reset_peak_memory_stats(device)
+        generation_start = time.perf_counter()
     video, latents = pipeline.inference(
         noise=sampled_noise,
         text_prompts=prompts,
@@ -170,6 +191,18 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
         initial_latent=initial_latent,
         low_memory=low_memory,
     )
+    if args.report_latency:
+        torch.cuda.synchronize(device)
+        elapsed = time.perf_counter() - generation_start
+        print(f"prompt={idx} pipeline_seconds={elapsed:.4f} "
+              f"peak_allocated_mib={torch.cuda.max_memory_allocated(device) / 2**20:.1f} "
+              f"peak_reserved_mib={torch.cuda.max_memory_reserved(device) / 2**20:.1f}", flush=True)
+    if args.profile_self_attention:
+        torch.cuda.synchronize(device)
+        for role, events in pipeline.attention_events.items():
+            duration_ms = sum(start.elapsed_time(end) for start, end in events)
+            print(f"prompt={idx} role={role} attention_calls={len(events)} "
+                  f"self_attention_ms={duration_ms:.3f}", flush=True)
     current_video = rearrange(video, 'b t c h w -> b t h w c').cpu()
     all_video.append(current_video)
     num_generated_frames += latents.shape[1]
@@ -190,3 +223,5 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
             else:
                 output_path = os.path.join(args.output_folder, f'{prompt[:100]}-{seed_idx}.mp4')
             write_video(output_path, video[seed_idx], fps=16)
+            if args.save_latents:
+                torch.save(latents[seed_idx].detach().cpu(), os.path.splitext(output_path)[0] + ".pt")

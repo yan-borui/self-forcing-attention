@@ -1,0 +1,11 @@
+Using CPython 3.10.22 interpreter at: .venv/bin/python
+Resolved 4 packages in 422ms
+Prepared 4 packages in 384ms
+Installed 4 packages in 9ms
+ + addict==2.4.0
+ + lpips==0.1.4
+ + pyiqa==0.1.13
+ + yapf==0.43.0
+-rw-rw-r-- 1 runner runner 244408911 Nov 24 08:26 ${PROJECT_ROOT}/.course/cache/torch/hub/checkpoints/alexnet-owt-7be5be79.pth
+-rw-rw-r-- 1 runner runner      2741 Nov 24 08:26 ${PROJECT_ROOT}/.course/eval/length/imaging_quality.py
+-rw-rw-r-- 1 runner runner 108610983 Nov 24 08:27 ${PROJECT_ROOT}/.course/eval/length/weights/musiq_spaq_ckpt-358bb6af.pth

@@ -1,0 +1,126 @@
+Free VRAM 22.44921875 GB
+KV inference with 3 frames per block
+Number of prompts: 4
+0it [00:00, ?it/s]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 24.46939706802368 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=0 pipeline_seconds=14.8708 peak_allocated_mib=13039.4 peak_reserved_mib=14826.0
+${PROJECT_ROOT}/.course/lib/base/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+1it [00:15, 15.66s/it]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 18.733673572540283 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=1 pipeline_seconds=12.5809 peak_allocated_mib=13045.7 peak_reserved_mib=16830.0
+2it [00:28, 14.26s/it]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 18.733185291290283 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=2 pipeline_seconds=12.6437 peak_allocated_mib=13046.2 peak_reserved_mib=16830.0
+3it [00:42, 13.84s/it]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 18.732697010040283 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=3 pipeline_seconds=12.5583 peak_allocated_mib=13046.2 peak_reserved_mib=16830.0
+4it [00:55, 13.60s/it]4it [00:55, 13.88s/it]

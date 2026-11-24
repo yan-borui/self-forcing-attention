@@ -1,0 +1,238 @@
+diff --git a/inference.py b/inference.py
+index e72657e..7d5581a 100644
+--- a/inference.py
++++ b/inference.py
+@@ -1,4 +1,5 @@
+ import argparse
++import time
+ import torch
+ import os
+ from omegaconf import OmegaConf
+@@ -14,6 +15,7 @@ from pipeline import (
+     CausalDiffusionInferencePipeline,
+     CausalInferencePipeline,
+ )
++from pipeline.causal_inference import SAGE_ROLES
+ from utils.dataset import TextDataset, TextImagePairDataset
+ from utils.misc import set_seed
+ 
+@@ -33,6 +35,17 @@ parser.add_argument("--seed", type=int, default=0, help="Random seed")
+ parser.add_argument("--num_samples", type=int, default=1, help="Number of samples to generate per prompt")
+ parser.add_argument("--save_with_index", action="store_true",
+                     help="Whether to save the video using the index or prompt as the filename")
++attention_options = parser.add_mutually_exclusive_group()
++attention_options.add_argument("--attention_policy", choices=SAGE_ROLES, default="native",
++                               help="Self-attention schedule for few-step generation")
++attention_options.add_argument("--sage_write_probe_chunk", type=int,
++                               help="Use Sage only for the clean write of one zero-based generated chunk")
++parser.add_argument("--save_latents", action="store_true",
++                    help="Save each sample's output latents beside its video")
++parser.add_argument("--report_latency", action="store_true",
++                    help="Report synchronized pipeline seconds including prompt encoding and VAE decoding")
++parser.add_argument("--profile_self_attention", action="store_true",
++                    help="Time cached self-attention on the GPU separately for denoising and history writes")
+ args = parser.parse_args()
+ 
+ # Initialize distributed inference
+@@ -61,9 +74,13 @@ config = OmegaConf.merge(default_config, config)
+ # Initialize pipeline
+ if hasattr(config, 'denoising_step_list'):
+     # Few-step inference
+-    pipeline = CausalInferencePipeline(config, device=device)
++    pipeline = CausalInferencePipeline(config, device=device, attention_policy=args.attention_policy,
++                                       sage_write_probe_chunk=args.sage_write_probe_chunk,
++                                       profile_self_attention=args.profile_self_attention)
+ else:
+     # Multi-step diffusion inference
++    if args.attention_policy != "native" or args.sage_write_probe_chunk is not None or args.profile_self_attention:
++        parser.error("The attention policy and write probe require a few-step configuration.")
+     pipeline = CausalDiffusionInferencePipeline(config, device=device)
+ 
+ if args.checkpoint_path:
+@@ -163,6 +180,10 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
+         )
+ 
+     # Generate 81 frames
++    if args.report_latency:
++        torch.cuda.synchronize(device)
++        torch.cuda.reset_peak_memory_stats(device)
++        generation_start = time.perf_counter()
+     video, latents = pipeline.inference(
+         noise=sampled_noise,
+         text_prompts=prompts,
+@@ -170,6 +191,18 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
+         initial_latent=initial_latent,
+         low_memory=low_memory,
+     )
++    if args.report_latency:
++        torch.cuda.synchronize(device)
++        elapsed = time.perf_counter() - generation_start
++        print(f"prompt={idx} pipeline_seconds={elapsed:.4f} "
++              f"peak_allocated_mib={torch.cuda.max_memory_allocated(device) / 2**20:.1f} "
++              f"peak_reserved_mib={torch.cuda.max_memory_reserved(device) / 2**20:.1f}", flush=True)
++    if args.profile_self_attention:
++        torch.cuda.synchronize(device)
++        for role, events in pipeline.attention_events.items():
++            duration_ms = sum(start.elapsed_time(end) for start, end in events)
++            print(f"prompt={idx} role={role} attention_calls={len(events)} "
++                  f"self_attention_ms={duration_ms:.3f}", flush=True)
+     current_video = rearrange(video, 'b t c h w -> b t h w c').cpu()
+     all_video.append(current_video)
+     num_generated_frames += latents.shape[1]
+@@ -190,3 +223,5 @@ for i, batch_data in tqdm(enumerate(dataloader), disable=(local_rank != 0)):
+             else:
+                 output_path = os.path.join(args.output_folder, f'{prompt[:100]}-{seed_idx}.mp4')
+             write_video(output_path, video[seed_idx], fps=16)
++            if args.save_latents:
++                torch.save(latents[seed_idx].detach().cpu(), os.path.splitext(output_path)[0] + ".pt")
+diff --git a/pipeline/causal_inference.py b/pipeline/causal_inference.py
+index a98626f..4397b62 100644
+--- a/pipeline/causal_inference.py
++++ b/pipeline/causal_inference.py
+@@ -2,10 +2,34 @@ from typing import List, Optional
+ import torch
+ 
+ from utils.wan_wrapper import WanDiffusionWrapper, WanTextEncoder, WanVAEWrapper
++from wan.modules.attention import attention
+ 
+ from demo_utils.memory import gpu, get_cuda_free_memory_gb, DynamicSwapInstaller, move_model_to_device_with_memory_preservation
+ 
+ 
++SAGE_ROLES = {
++    "native": (),
++    "sage": ("denoise", "last_denoise", "write"),
++    "native_write": ("denoise", "last_denoise"),
++    "native_last_denoise": ("denoise", "write"),
++}
++
++
++def load_sage_v1_attention():
++    from importlib.metadata import version
++
++    if version("sageattention").partition("+")[0] != "1.0.6":
++        raise RuntimeError("The Sage policies use sageattention==1.0.6.")
++    from sageattention import sageattn
++
++    def attend(q, k, v):
++        # v1 centers K in place. The caller passes a view of persistent history.
++        centered_k = k - k.mean(dim=1, keepdim=True)
++        return sageattn(q, centered_k, v, tensor_layout="NHD", is_causal=False, smooth_k=False)
++
++    return attend
++
++
+ class CausalInferencePipeline(torch.nn.Module):
+     def __init__(
+             self,
+@@ -13,9 +37,19 @@ class CausalInferencePipeline(torch.nn.Module):
+             device,
+             generator=None,
+             text_encoder=None,
+-            vae=None
++            vae=None,
++            *,
++            attention_policy="native",
++            sage_write_probe_chunk=None,
++            profile_self_attention=False,
+     ):
+         super().__init__()
++        self.sage_roles = SAGE_ROLES[attention_policy]
++        self.sage_write_probe_chunk = sage_write_probe_chunk
++        self.attention_events = {} if profile_self_attention else None
++        self.sage_attention = None
++        if self.sage_roles or sage_write_probe_chunk is not None:
++            self.sage_attention = load_sage_v1_attention()
+         # Step 1: Initialize all models
+         self.generator = WanDiffusionWrapper(
+             **getattr(args, "model_kwargs", {}), is_causal=True) if generator is None else generator
+@@ -44,6 +78,31 @@ class CausalInferencePipeline(torch.nn.Module):
+         if self.num_frame_per_block > 1:
+             self.generator.model.num_frame_per_block = self.num_frame_per_block
+ 
++    def _select_cached_attention(self, role, chunk_index=None):
++        if self.sage_attention is None and self.attention_events is None:
++            return
++        if self.sage_write_probe_chunk is None:
++            use_sage = role in self.sage_roles
++        else:
++            use_sage = role == "write" and chunk_index == self.sage_write_probe_chunk
++        backend = self.sage_attention if use_sage else attention
++        selected = backend
++        if self.attention_events is not None:
++            events = self.attention_events.setdefault(role, [])
++
++            def measured(q, k, v):
++                start = torch.cuda.Event(enable_timing=True)
++                end = torch.cuda.Event(enable_timing=True)
++                start.record()
++                output = backend(q, k, v)
++                end.record()
++                events.append((start, end))
++                return output
++
++            selected = measured
++        for layer_cache in self.kv_cache1:
++            layer_cache["self_attention"] = selected
++
+     def inference(
+         self,
+         noise: torch.Tensor,
+@@ -70,6 +129,8 @@ class CausalInferencePipeline(torch.nn.Module):
+                 It is normalized to be in the range [0, 1].
+         """
+         batch_size, num_frames, num_channels, height, width = noise.shape
++        if self.attention_events is not None:
++            self.attention_events.clear()
+         if not self.independent_first_frame or (self.independent_first_frame and initial_latent is not None):
+             # If the first frame is independent and the first frame is provided, then the number of frames in the
+             # noise should still be a multiple of num_frame_per_block
+@@ -134,6 +195,7 @@ class CausalInferencePipeline(torch.nn.Module):
+         # Step 2: Cache context feature
+         current_start_frame = 0
+         if initial_latent is not None:
++            self._select_cached_attention("prefix")
+             timestep = torch.ones([batch_size, 1], device=noise.device, dtype=torch.int64) * 0
+             if self.independent_first_frame:
+                 # Assume num_input_frames is 1 + self.num_frame_per_block * num_input_blocks
+@@ -177,7 +239,9 @@ class CausalInferencePipeline(torch.nn.Module):
+         all_num_frames = [self.num_frame_per_block] * num_blocks
+         if self.independent_first_frame and initial_latent is None:
+             all_num_frames = [1] + all_num_frames
+-        for current_num_frames in all_num_frames:
++        if self.sage_write_probe_chunk is not None and not 0 <= self.sage_write_probe_chunk < len(all_num_frames):
++            raise ValueError(f"Probe chunk must be in [0, {len(all_num_frames) - 1}].")
++        for chunk_index, current_num_frames in enumerate(all_num_frames):
+             if profile:
+                 block_start.record()
+ 
+@@ -186,6 +250,8 @@ class CausalInferencePipeline(torch.nn.Module):
+ 
+             # Step 3.1: Spatial denoising loop
+             for index, current_timestep in enumerate(self.denoising_step_list):
++                role = "last_denoise" if index == len(self.denoising_step_list) - 1 else "denoise"
++                self._select_cached_attention(role, chunk_index)
+                 print(f"current_timestep: {current_timestep}")
+                 # set current timestep
+                 timestep = torch.ones(
+@@ -224,6 +290,7 @@ class CausalInferencePipeline(torch.nn.Module):
+             output[:, current_start_frame:current_start_frame + current_num_frames] = denoised_pred
+ 
+             # Step 3.3: rerun with timestep zero to update KV cache using clean context
++            self._select_cached_attention("write", chunk_index)
+             context_timestep = torch.ones_like(timestep) * self.args.context_noise
+             self.generator(
+                 noisy_image_or_video=denoised_pred,
+diff --git a/wan/modules/causal_model.py b/wan/modules/causal_model.py
+index 98e398a..5baf4e0 100644
+--- a/wan/modules/causal_model.py
++++ b/wan/modules/causal_model.py
+@@ -226,7 +226,8 @@ class CausalWanSelfAttention(nn.Module):
+                 local_start_index = local_end_index - num_new_tokens
+                 kv_cache["k"][:, local_start_index:local_end_index] = roped_key
+                 kv_cache["v"][:, local_start_index:local_end_index] = v
+-            x = attention(
++            cache_attention = kv_cache.get("self_attention", attention)
++            x = cache_attention(
+                 roped_query,
+                 kv_cache["k"][:, max(0, local_end_index - self.max_attention_size):local_end_index],
+                 kv_cache["v"][:, max(0, local_end_index - self.max_attention_size):local_end_index]

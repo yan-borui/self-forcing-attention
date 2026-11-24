@@ -1,0 +1,70 @@
+Free VRAM 22.44921875 GB
+KV inference with 3 frames per block
+Number of prompts: 2
+0it [00:00, ?it/s]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 24.46939706802368 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=0 role=denoise attention_calls=630 self_attention_ms=2647.841
+prompt=0 role=last_denoise attention_calls=210 self_attention_ms=861.718
+prompt=0 role=write attention_calls=210 self_attention_ms=856.830
+${PROJECT_ROOT}/.course/lib/base/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+1it [00:16, 16.12s/it]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 18.733673572540283 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=1 role=denoise attention_calls=630 self_attention_ms=2564.111
+prompt=1 role=last_denoise attention_calls=210 self_attention_ms=850.701
+prompt=1 role=write attention_calls=210 self_attention_ms=852.595
+2it [00:31, 15.49s/it]2it [00:31, 15.59s/it]

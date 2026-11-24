@@ -2,6 +2,9 @@
 <h1 align="center">Self Forcing</h1>
 <h3 align="center">Bridging the Train-Test Gap in Autoregressive Video Diffusion</h3>
 </p>
+
+**课程实验**使用冻结的四步 Self Forcing 模型比较 SageAttention 的不同推理策略。分支 `ybr` 保存实验代码和结果，`main` 对应作者的原版代码。[实验入口、对照视频与逐例数据](course/README.md)
+
 <p align="center">
   <p align="center">
     <a href="https://www.xunhuang.me/">Xun Huang</a><sup>1</sup>

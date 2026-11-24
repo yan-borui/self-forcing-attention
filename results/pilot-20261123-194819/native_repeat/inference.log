@@ -1,0 +1,36 @@
+Free VRAM 22.44921875 GB
+KV inference with 3 frames per block
+Number of prompts: 1
+0it [00:00, ?it/s]Moving DynamicSwap_WanTextEncoder to cuda:0 with preserved memory: 24.46939706802368 GB
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+current_timestep: 1000.0
+current_timestep: 937.5
+current_timestep: 833.3333129882812
+current_timestep: 625.0
+prompt=0 pipeline_seconds=15.3984 peak_allocated_mib=13039.8 peak_reserved_mib=14784.0
+${PROJECT_ROOT}/.course/lib/base/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+1it [00:16, 16.23s/it]1it [00:16, 16.23s/it]
